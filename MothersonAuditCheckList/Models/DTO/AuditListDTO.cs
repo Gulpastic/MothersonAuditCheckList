@@ -3,11 +3,12 @@
     public class AuditListDTO
     {
         public string Unit { get; set; }
-        public DateTime AuditDate { get; set; } 
+        public DateTime AuditDate { get; set; }
+        public string auditors { get; set; }
         public string auditees { get; set; }
-        public List<Rule> RuleList {  get; set; }
+        public List<RuleHeader> RuleList {  get; set; }
     }
-    public class Rule
+    public class RuleHeader
     {
         public string RuleName { get; set; }
         public List <RuleDetail> RuleListDetails { get; set; }

@@ -12,6 +12,7 @@ using Org.BouncyCastle.Utilities;
 using NPOI.OpenXmlFormats.Spreadsheet;
 using System.Collections.Generic;
 using NPOI.Util;
+using System.Data;
 
 
 namespace MothersonAuditCheckList.Controllers
@@ -38,6 +39,10 @@ namespace MothersonAuditCheckList.Controllers
             var Logo = wb.CreateCellStyle();
             Logo.Alignment = HorizontalAlignment.Center;
             Logo.WrapText = true;
+            IFont logoFont = wb.CreateFont();
+            logoFont.FontName = "Calibri";
+            logoFont.FontHeightInPoints = 11;
+            Logo.SetFont(logoFont);
             Logo.BorderLeft = BorderStyle.Medium;
             Logo.BorderBottom = BorderStyle.Medium;
             Logo.BorderTop = BorderStyle.Medium;
@@ -209,9 +214,6 @@ namespace MothersonAuditCheckList.Controllers
                 headerCell.CellStyle = Header;
             }
 
-            checklist.AutoSizeRow(1);
-            checklist.AutoSizeColumn(1);
-
             #endregion
 
             #region 2nd Row Table Contents
@@ -238,14 +240,13 @@ namespace MothersonAuditCheckList.Controllers
 
             cellIndex = cellIndex + 1;
             headerCell2 = headerRow2.CreateCell(cellIndex);
+            headerCell2.SetCellValue("Auditors");
             headerCell2.CellStyle = Header;
 
             cellIndex = cellIndex + 1;
             headerCell2 = headerRow2.CreateCell(cellIndex);
+            headerCell2.SetCellValue(auditListDTO.auditors);
             headerCell2.CellStyle = Header;
-
-            checklist.AutoSizeRow(2);
-            checklist.AutoSizeColumn(2);
 
             #endregion
 
@@ -280,9 +281,6 @@ namespace MothersonAuditCheckList.Controllers
             headerCell3 = headerRow3.CreateCell(cellIndex);
             headerCell3.SetCellValue(auditListDTO.auditees);
             headerCell3.CellStyle = Header;
-
-            checklist.AutoSizeRow(3);
-            checklist.AutoSizeColumn(3);
 
             #endregion
 
@@ -320,17 +318,19 @@ namespace MothersonAuditCheckList.Controllers
             headerCell4.SetCellValue("Auditor Remark");
             headerCell4.CellStyle = Header;
 
-            checklist.AutoSizeRow(4);
-            checklist.AutoSizeColumn(4);
-
             #endregion
-
 
             for (int i = 1; i < 1000; i++)
                 checklist.AutoSizeRow(i);
 
             for (int j = 1; j < 7; j++)
                 checklist.AutoSizeColumn(j);
+
+            #region Calling body content input & format function
+
+            WriteBodyContent(auditListDTO.RuleList, checklist, checkpointHeader, Data);
+
+            #endregion
 
             #region Creating Excel File
 
@@ -346,6 +346,57 @@ namespace MothersonAuditCheckList.Controllers
 
             return Ok();
         }
-    }
 
+        public void WriteBodyContent(List<RuleHeader> Rule, XSSFSheet sheet, ICellStyle Checklist, ICellStyle Data)
+        {
+            int SR_NO = 1;
+
+            for (int i = 0; i < Rule.Count; i++)
+            {
+                var row = sheet.GetRow(i + 1);
+                bool isRowEmpty = true;
+                for (int j = 2; j <= 7; j++)
+                {
+                    if (row.GetCell(j) != null && !string.IsNullOrEmpty(row.GetCell(j).ToString()))
+                    {
+                        isRowEmpty = false;
+                        break;
+                    }
+                }
+
+                if (isRowEmpty)
+                {
+                    var NameRow = sheet.CreateRow(i + 1);
+                    var dataRow = sheet.CreateRow(i + 2);
+                    sheet.AddMergedRegion(new CellRangeAddress(i + 1, i + 1, 1, 6));
+                    ICell NameCell = NameRow.CreateCell(0);
+                    NameCell.SetCellValue(Rule[i].RuleName);
+                    NameCell.CellStyle = Checklist;
+
+                    for (int k = 0; k < Rule[i].RuleListDetails.Count; k++)
+                    {
+                        var ruleDetail = Rule[i].RuleListDetails[k];
+                        var cell1 = dataRow.CreateCell(1);
+                        var cell2 = dataRow.CreateCell(2);
+                        var cell3 = dataRow.CreateCell(3);
+                        var cell4 = dataRow.CreateCell(4);
+                        var cell5 = dataRow.CreateCell(5);
+                        var cell6 = dataRow.CreateCell(6);
+                        dataRow.CreateCell(1).SetCellValue(ruleDetail.Section);
+                        dataRow.CreateCell(2).SetCellValue(ruleDetail.Type);
+                        dataRow.CreateCell(3).SetCellValue(SR_NO++);
+                        dataRow.CreateCell(4).SetCellValue(ruleDetail.Statement);
+                        dataRow.CreateCell(5).SetCellValue(ruleDetail.Score);
+                        dataRow.CreateCell(6).SetCellValue(ruleDetail.Remark);
+                        cell1.CellStyle = Data;
+                        cell2.CellStyle = Data;
+                        cell3.CellStyle = Data;
+                        cell4.CellStyle = Data;
+                        cell5.CellStyle = Data;
+                        cell6.CellStyle = Data;
+                    }
+                }
+            }
+        }
+    }
 }
