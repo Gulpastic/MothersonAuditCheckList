@@ -11,6 +11,7 @@ using MothersonAuditCheckList.Models.DTO;
 using Org.BouncyCastle.Utilities;
 using NPOI.OpenXmlFormats.Spreadsheet;
 using System.Collections.Generic;
+using NPOI.Util;
 
 
 namespace MothersonAuditCheckList.Controllers
@@ -32,6 +33,48 @@ namespace MothersonAuditCheckList.Controllers
 
             #endregion
 
+            #region Create logo Header Cell Style and Font
+
+            var Logo = wb.CreateCellStyle();
+            Logo.Alignment = HorizontalAlignment.Center;
+            Logo.WrapText = true;
+            Logo.BorderLeft = BorderStyle.Medium;
+            Logo.BorderBottom = BorderStyle.Medium;
+            Logo.BorderTop = BorderStyle.Medium;
+
+            #endregion
+
+            #region Create 1st Header Cell Style and Font
+
+            var Header1 = wb.CreateCellStyle();
+            Header1.Alignment = HorizontalAlignment.Center;
+            IFont HeaderFont1 = wb.CreateFont();
+            HeaderFont1.Boldweight = (short)FontBoldWeight.Bold;
+            HeaderFont1.FontName = "Calibri";
+            HeaderFont1.FontHeightInPoints = 12;
+            Header1.SetFont(HeaderFont1);
+            Header1.WrapText = true;
+            Header1.BorderBottom = BorderStyle.Medium;
+            Header1.BorderTop = BorderStyle.Medium;
+
+            #endregion
+
+            #region Create 2nd Header Cell Style and Font
+
+            var Header2 = wb.CreateCellStyle();
+            Header2.Alignment = HorizontalAlignment.Center;
+            IFont HeaderFont2 = wb.CreateFont();
+            HeaderFont2.Boldweight = (short)FontBoldWeight.Bold;
+            HeaderFont2.FontName = "Calibri";
+            HeaderFont2.FontHeightInPoints = 12;
+            Header2.SetFont(HeaderFont2);
+            Header2.WrapText = true;
+            Header2.BorderRight = BorderStyle.Medium;
+            Header2.BorderBottom = BorderStyle.Medium;
+            Header2.BorderTop = BorderStyle.Medium;
+
+            #endregion
+
             #region Create Header Cell Style and Font
 
             var Header = wb.CreateCellStyle();
@@ -39,7 +82,7 @@ namespace MothersonAuditCheckList.Controllers
             IFont HeaderFont = wb.CreateFont();
             HeaderFont.Boldweight = (short)FontBoldWeight.Bold;
             HeaderFont.FontName = "Calibri";
-            HeaderFont.FontHeightInPoints = (short)12;
+            HeaderFont.FontHeightInPoints = 12;
             Header.SetFont(HeaderFont);
             Header.WrapText = true;
             Header.BorderLeft = BorderStyle.Medium;
@@ -50,6 +93,7 @@ namespace MothersonAuditCheckList.Controllers
             #endregion
 
             #region Create checkpointHeader Style
+
             var checkpointHeader = wb.CreateCellStyle();
             checkpointHeader.Alignment = HorizontalAlignment.Center;
             checkpointHeader.FillForegroundColor = HSSFColor.LightYellow.Index;
@@ -57,7 +101,7 @@ namespace MothersonAuditCheckList.Controllers
             IFont checkpointHeaderFont = wb.CreateFont();
             checkpointHeaderFont.Boldweight = (short)FontBoldWeight.Bold;
             checkpointHeaderFont.FontName = "Calibri";
-            checkpointHeaderFont.FontHeightInPoints = (short)12;
+            checkpointHeaderFont.FontHeightInPoints = 12;
             checkpointHeader.SetFont(checkpointHeaderFont);
             checkpointHeader.BorderLeft = BorderStyle.Medium;
             checkpointHeader.BorderRight = BorderStyle.Medium;
@@ -68,11 +112,12 @@ namespace MothersonAuditCheckList.Controllers
             #endregion
 
             #region Data Cell Style
+
             var Data = wb.CreateCellStyle();
             Data.Alignment = HorizontalAlignment.Center;
             IFont dataFont = wb.CreateFont();
             dataFont.FontName = "Calibri";
-            dataFont.FontHeightInPoints = (short)11;
+            dataFont.FontHeightInPoints = 11;
             Data.SetFont(dataFont);
             Data.BorderLeft = BorderStyle.Medium;
             Data.BorderRight = BorderStyle.Medium;
@@ -82,41 +127,92 @@ namespace MothersonAuditCheckList.Controllers
 
             #endregion
 
+            #region add logo on top
+            checklist.AddMergedRegion(new CellRangeAddress(1, 1, 1, 2));
+
+            byte[] data = System.IO.File.ReadAllBytes("logo.png");
+            int pictureIndex = wb.AddPicture(data, PictureType.PNG);
+            XSSFDrawing drawing = (XSSFDrawing)checklist.CreateDrawingPatriarch();
+            XSSFClientAnchor anchor = new XSSFClientAnchor();
+            anchor.Row1 = 1;
+            anchor.Col1 = 1;
+            IPicture picture = drawing.CreatePicture(anchor, pictureIndex);
+            picture.Resize();
+            int pictWidthPx = picture.GetImageDimension().Width;
+
+            float cellWidthPx = 0f;
+            for (int col = 1; col < 2; col++)
+            {
+                cellWidthPx += checklist.GetColumnWidthInPixels(col);
+            }
+
+            int centerPosPx = (int)Math.Round(cellWidthPx / 2f);
+
+            int anchorCol1 = 1;
+            for (int col = 1; col < 2; col++)
+            {
+                if (Math.Round(checklist.GetColumnWidthInPixels(col)) < centerPosPx)
+                {
+                    centerPosPx -= (int)Math.Round(checklist.GetColumnWidthInPixels(col));
+                    anchorCol1 = col + 1;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            anchor.Col1 = anchorCol1;
+            anchor.Dx1 = centerPosPx * Units.EMU_PER_PIXEL;
+            var row = checklist.CreateRow(1);
+
+            double scaleX = 1.0;
+            double scaleY = 1.0;
+            if (picture.GetImageDimension().Width > cellWidthPx)
+            {
+                scaleX = cellWidthPx / picture.GetImageDimension().Width;
+            }
+
+            if (picture.GetImageDimension().Width > row.HeightInPoints)
+            {
+                scaleY = row.HeightInPoints / picture.GetImageDimension().Height * 1.34;
+            }
+
+            anchor.AnchorType = AnchorType.MoveDontResize;
+            picture.Resize(scaleX, scaleY);
+
+            #endregion
+
             #region Create and Merge Cells
 
             IRow headerRow = checklist.CreateRow(1);
             var headerCell = headerRow.CreateCell(1);
-            XSSFRichTextString richString = new XSSFRichTextString("COSA Safety Audit Checksheet-" + DateTime.Now.ToString("yyyy") + Environment.NewLine + "COMPREHENSIVE CHECKLIST OF ENVIRONMENT, HEALTH & SAFETY AUDIT");
-            headerCell.SetCellValue(richString);
+            headerCell.CellStyle = Logo;
 
-            checklist.AddMergedRegion(new CellRangeAddress(1, 1, 1, 6));
+            var headerCell1st = headerRow.CreateCell(2);
+            headerCell1st.CellStyle = Header1;
+
+            var headerCell2nd = headerRow.CreateCell(3);
+            headerCell2nd.CellStyle = Header2;
+
+            XSSFRichTextString richString = new XSSFRichTextString("COSA Safety Audit Checksheet-" + DateTime.Now.ToString("yyyy") + Environment.NewLine + "COMPREHENSIVE CHECKLIST OF ENVIRONMENT, HEALTH & SAFETY AUDIT");
+            headerCell2nd.SetCellValue(richString);
+
+            checklist.AddMergedRegion(new CellRangeAddress(1, 1, 3, 6));
             checklist.AddMergedRegion(new CellRangeAddress(2, 2, 2, 3));
             checklist.AddMergedRegion(new CellRangeAddress(3, 3, 2, 3));
-            headerCell.CellStyle = Header;
-            for (int i = 1; i < 7; i++)
+
+
+            for (int i = 4; i < 7; i++)
             {
                 headerCell = headerRow.CreateCell(i);
                 headerCell.CellStyle = Header;
-
             }
 
-            #endregion
+            checklist.AutoSizeRow(1);
+            checklist.AutoSizeColumn(1);
 
-            #region add logo on top
-            byte[] data = System.IO.File.ReadAllBytes("logo.png");
-            int pictureIndex = wb.AddPicture(data, PictureType.PNG);
-            ICreationHelper helper = wb.GetCreationHelper();
-            IDrawing drawing = checklist.CreateDrawingPatriarch();
-            IClientAnchor anchor = helper.CreateClientAnchor();
-            anchor.Col1 = 1;
-            anchor.Row1 = 1;
-            anchor.Col2 = 1;
-            anchor.Row2 = 1;
-            IPicture picture = drawing.CreatePicture(anchor, pictureIndex);
-            picture.Resize(0.8);
-            anchor.AnchorType = AnchorType.MoveAndResize;
             #endregion
-
 
             #region 2nd Row Table Contents
 
@@ -148,9 +244,13 @@ namespace MothersonAuditCheckList.Controllers
             headerCell2 = headerRow2.CreateCell(cellIndex);
             headerCell2.CellStyle = Header;
 
+            checklist.AutoSizeRow(2);
+            checklist.AutoSizeColumn(2);
+
             #endregion
 
             #region 3rd Row Contents
+
             cellIndex = 1;
 
             IRow headerRow3 = checklist.CreateRow(3);
@@ -180,6 +280,9 @@ namespace MothersonAuditCheckList.Controllers
             headerCell3 = headerRow3.CreateCell(cellIndex);
             headerCell3.SetCellValue(auditListDTO.auditees);
             headerCell3.CellStyle = Header;
+
+            checklist.AutoSizeRow(3);
+            checklist.AutoSizeColumn(3);
 
             #endregion
 
@@ -217,10 +320,13 @@ namespace MothersonAuditCheckList.Controllers
             headerCell4.SetCellValue("Auditor Remark");
             headerCell4.CellStyle = Header;
 
+            checklist.AutoSizeRow(4);
+            checklist.AutoSizeColumn(4);
+
             #endregion
 
 
-            for (int i = 1; i < 15; i++)
+            for (int i = 1; i < 1000; i++)
                 checklist.AutoSizeRow(i);
 
             for (int j = 1; j < 7; j++)
