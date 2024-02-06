@@ -133,8 +133,13 @@ namespace MothersonAuditCheckList.Controllers
             #endregion
 
             #region add logo on top
+            checklist.SetColumnWidth(1, 8788);
+            checklist.SetColumnWidth(2, 3812);
+            checklist.SetColumnWidth(3, 1792);
+            checklist.SetColumnWidth(4, 14792);
+            checklist.SetColumnWidth(5, 3812);
+            checklist.SetColumnWidth(6, 9812);
             checklist.AddMergedRegion(new CellRangeAddress(1, 1, 1, 2));
-
             byte[] data = System.IO.File.ReadAllBytes("logo.png");
             int pictureIndex = wb.AddPicture(data, PictureType.PNG);
             XSSFDrawing drawing = (XSSFDrawing)checklist.CreateDrawingPatriarch();
@@ -321,13 +326,11 @@ namespace MothersonAuditCheckList.Controllers
             #endregion
 
             for (int i = 1; i < 4; i++)
-            {
                 checklist.AutoSizeRow(i);
-                for (int j = 1; j < 7; j++)
-                    checklist.AutoSizeColumn(j);
-            }
 
             #region Calling body content input & format function
+
+
 
             WriteBodyContent(auditListDTO.RuleList, checklist, checkpointHeader, Data);
 
