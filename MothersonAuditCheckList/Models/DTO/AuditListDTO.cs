@@ -18,7 +18,7 @@
     {
         public string Section { get; set; }
         public string Type { get; set; }
-        public string Statement { get; set; }
+        public string checkpointStatement { get; set; }
         public string Score { get; set; }
         public string Remark { get; set; }
     }

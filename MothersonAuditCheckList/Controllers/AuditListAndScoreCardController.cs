@@ -24,7 +24,7 @@ namespace MothersonAuditCheckList.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [Route("api/CreateExcel")]
-        public ActionResult createExcel([FromBody] AuditListDTO auditListDTO)
+        public IActionResult createExcel([FromBody] AuditListDTO auditListDTO)
         {
             #region Create excel workbook and Sheets
 
@@ -320,11 +320,12 @@ namespace MothersonAuditCheckList.Controllers
 
             #endregion
 
-            for (int i = 1; i < 1000; i++)
+            for (int i = 1; i < 4; i++)
+            {
                 checklist.AutoSizeRow(i);
-
-            for (int j = 1; j < 7; j++)
-                checklist.AutoSizeColumn(j);
+                for (int j = 1; j < 7; j++)
+                    checklist.AutoSizeColumn(j);
+            }
 
             #region Calling body content input & format function
 
@@ -350,52 +351,50 @@ namespace MothersonAuditCheckList.Controllers
         public void WriteBodyContent(List<RuleHeader> Rule, XSSFSheet sheet, ICellStyle Checklist, ICellStyle Data)
         {
             int SR_NO = 1;
-
+            int bodyRowIndex = 5;
             for (int i = 0; i < Rule.Count; i++)
             {
-                var row = sheet.GetRow(i + 1);
-                bool isRowEmpty = true;
-                for (int j = 2; j <= 7; j++)
+                IRow RuleHeader = sheet.CreateRow(bodyRowIndex);
+                ICell ruleHeaderCell = RuleHeader.CreateCell(1);
+                sheet.AddMergedRegion(new CellRangeAddress(bodyRowIndex, bodyRowIndex, 1, 6));
+                for (int k = 1; k < 7; k++)
                 {
-                    if (row.GetCell(j) != null && !string.IsNullOrEmpty(row.GetCell(j).ToString()))
-                    {
-                        isRowEmpty = false;
-                        break;
-                    }
+                    var stylingCell = RuleHeader.CreateCell(k);
+                    stylingCell.CellStyle = Checklist;
+                }
+                ruleHeaderCell.SetCellValue(Rule[i].RuleName);
+
+                for (int j = 0; j < Rule[i].RuleListDetails.Count; j++)
+                {
+                    bodyRowIndex = bodyRowIndex + 1;
+                    var detailRow = sheet.CreateRow(bodyRowIndex);
+
+                    var sectionCell = detailRow.CreateCell(1);
+                    sectionCell.CellStyle = Data;
+                    sectionCell.SetCellValue(Rule[i].RuleListDetails[j].Section);
+
+                    var typeCell = detailRow.CreateCell(2);
+                    typeCell.CellStyle = Data;
+                    typeCell.SetCellValue(Rule[i].RuleListDetails[j].Type);
+
+                    var serialNoCell = detailRow.CreateCell(3);
+                    serialNoCell.CellStyle = Data;
+                    serialNoCell.SetCellValue(SR_NO++);
+
+                    var checkpointCell = detailRow.CreateCell(4);
+                    checkpointCell.CellStyle = Data;
+                    checkpointCell.SetCellValue(Rule[i].RuleListDetails[j].checkpointStatement);
+
+                    var scoreCell = detailRow.CreateCell(5);
+                    scoreCell.CellStyle = Data;
+                    scoreCell.SetCellValue(Rule[i].RuleListDetails[j].Score);
+
+                    var remarkCell = detailRow.CreateCell(6);
+                    remarkCell.CellStyle = Data;
+                    remarkCell.SetCellValue(Rule[i].RuleListDetails[j].Remark);
                 }
 
-                if (isRowEmpty)
-                {
-                    var NameRow = sheet.CreateRow(i + 1);
-                    var dataRow = sheet.CreateRow(i + 2);
-                    sheet.AddMergedRegion(new CellRangeAddress(i + 1, i + 1, 1, 6));
-                    ICell NameCell = NameRow.CreateCell(0);
-                    NameCell.SetCellValue(Rule[i].RuleName);
-                    NameCell.CellStyle = Checklist;
-
-                    for (int k = 0; k < Rule[i].RuleListDetails.Count; k++)
-                    {
-                        var ruleDetail = Rule[i].RuleListDetails[k];
-                        var cell1 = dataRow.CreateCell(1);
-                        var cell2 = dataRow.CreateCell(2);
-                        var cell3 = dataRow.CreateCell(3);
-                        var cell4 = dataRow.CreateCell(4);
-                        var cell5 = dataRow.CreateCell(5);
-                        var cell6 = dataRow.CreateCell(6);
-                        dataRow.CreateCell(1).SetCellValue(ruleDetail.Section);
-                        dataRow.CreateCell(2).SetCellValue(ruleDetail.Type);
-                        dataRow.CreateCell(3).SetCellValue(SR_NO++);
-                        dataRow.CreateCell(4).SetCellValue(ruleDetail.Statement);
-                        dataRow.CreateCell(5).SetCellValue(ruleDetail.Score);
-                        dataRow.CreateCell(6).SetCellValue(ruleDetail.Remark);
-                        cell1.CellStyle = Data;
-                        cell2.CellStyle = Data;
-                        cell3.CellStyle = Data;
-                        cell4.CellStyle = Data;
-                        cell5.CellStyle = Data;
-                        cell6.CellStyle = Data;
-                    }
-                }
+                bodyRowIndex += 1;
             }
         }
     }
